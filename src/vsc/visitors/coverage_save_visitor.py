@@ -154,6 +154,8 @@ class CoverageSaveVisitor(ModelVisitor):
                 decl_location,
                 at_least, # at_least
                 cp.get_bin_hits(bi),
+#                cp.get_bin_range(bi),       # Minho
+                None,
                 bn_name)
         
     def visit_coverpoint_bin_collection(self, bn:CoverpointBinCollectionModel):
@@ -223,6 +225,9 @@ class CoverageSaveVisitor(ModelVisitor):
                 decl_location,
                 at_least,
                 cr.get_bin_hits(bi),
+# Minho
+                cr.get_bin_tuple(bi),
+#
                 bn_name)        
             
     def get_cg_instname(self, cg : CovergroupModel)->str:

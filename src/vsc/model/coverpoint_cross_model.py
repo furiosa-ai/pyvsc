@@ -103,6 +103,9 @@ class CoverpointCrossModel(CoverItemBase):
         ret += ">"
         return ret
     
+    def get_bin_tuple(self, bin_idx):
+        return self.idx2tuple_m[bin_idx]
+
     def add_coverpoint(self, cp_m):
         self.coverpoint_model_l.append(cp_m)
     
