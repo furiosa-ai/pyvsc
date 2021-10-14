@@ -240,6 +240,13 @@ def covergroup(T):
         def get_name(self) -> str:
             return self.name
             
+        def set_instname(self, instname):
+            self.instname = instname
+           
+            cg_i = self._get_int()
+            if cg_i.model is not None:
+                cg_i.model.instname = instname
+                
         def configure_options(self, *args, **kwargs):
             if len(args) == 1 and isinstance(args[0], dict):
                 opts=args[0]
@@ -263,6 +270,7 @@ def covergroup(T):
         setattr(T, "__setattr__", _setattr)
         setattr(T, "set_name", set_name)
         setattr(T, "get_name", get_name)
+        setattr(T, "set_instname", set_instname)
         setattr(T, "_cg_init", True)
         setattr(T, "configure_options", configure_options)
     else:
