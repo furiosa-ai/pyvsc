@@ -31,7 +31,7 @@ setup(
     'ivpm',
   ],
   install_requires=[
-    'pyboolector>=3.2.1',
+    'pyboolector>=3.2.2',
     'pyucis',
     'toposort'
   ],

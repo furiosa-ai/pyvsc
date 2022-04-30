@@ -271,6 +271,41 @@ The example below creates 16 bins for the values 0x80..0x8F:
                     a=vsc.wildcard_bin_array([], "0x8x")
                     ))
 
+Ignore and Illegal Bins
+^^^^^^^^^^^^^^^^^^^^^^^
+`Ignore` and `illegal` bins may be specified on coverpoints in
+addition to the other bins described above. An ignore or illegal
+bin trims values from other bins if it intersects values within
+those bins. Please note that, as in SystemVerilog, bins are 
+partitioned *after* ignore and illegal bin values are removed 
+from regular bins. 
+
+.. code-block:: python3
+
+     @vsc.covergroup
+        class val_cg(object):
+            def __init__(self):
+                self.with_sample(dict(
+                    a=vsc.uint8_t()
+                    ))
+                self.cp_val = vsc.coverpoint(self.a, bins=dict(
+                                    rng_1=vsc.bin_array([4], [1,3], [4,6], [7,9], [10,12])
+                                ),
+                                ignore_bins=dict(
+                                    invalid_value=vsc.bin(4)
+                                ))
+
+In the example above, the user specifies an array of four 
+auto-partitioned bins and an ignored value of `4`. In the 
+absence of ignore bins, the 12 values to be paritionted 
+would be divided into bins of three (1..3, 4..6, 7..9, 10..12).
+Because bins are partitioned after excluded bins have been
+applied, the bins in the example above are:
+- 1..2
+- 3,5
+- 6,7
+- 8..12
+  
 Coverpoint Crosses
 ------------------
 
@@ -303,8 +338,6 @@ A sampling condition can be specified on both coverpoints and coverpoint
 crosses using the `iff` keyword parameter to the `coverpoint` and `cross`
 methods. 
 
-.. note:: Sampling conditions are currently ignored 
-
 .. code-block:: python3
 
        @vsc.covergroup        
@@ -321,20 +354,56 @@ methods.
 Coverpoint Options
 ------------------
 Both type options and instance options can specified on both coverpoints
-and coverpoint crosses. 
+and coverpoint crosses. Only the following options are currently 
+respected:
 
-.. note:: Coverpoint options are accepted, but ignored
++---------------------+-------------+--------------------------------------------------------------+
+| Option name         | Default     | Description                                                  |
++=====================+=============+==============================================================+
+| weight=number       | 1           | Specifies the weight of this covergroup instances relative   |
+|                     |             | to other instances.                                          |
++---------------------+-------------+--------------------------------------------------------------+
+| goal=number         | 100         | Specifies the target goal for this covergroup instance       |
++---------------------+-------------+--------------------------------------------------------------+
+| at_least=number     | 1           | Minimum number of hits for each coverage bin                 |
++---------------------+-------------+--------------------------------------------------------------+
+| auto_bin_max=number | 64          | Maximum number of automatically-created bins when bins are   |
+|                     |             | not explicitly specified                                     |
++---------------------+-------------+--------------------------------------------------------------+
+
+Options are specified via a ``dict`` attached to the coverpoint 
+during construction. The example below shows overriding the 
+covergroup-level ``at_least`` option for one coverpoint.
+
+.. code-block:: python3
+
+        @vsc.covergroup
+        class cg(object):
+            
+            def __init__(self):
+                self.with_sample(dict(
+                    a=vsc.uint8_t(),
+                    b=vsc.uint8_t()))
+                
+                self.options.at_least = 2
+                
+                self.cp1 = vsc.coverpoint(self.a, bins={
+                    "a" : vsc.bin_array([], 1, 2, 4, 8),
+                    }, options=dict(at_least=1))
+                self.cp2 = vsc.coverpoint(self.b, bins={
+                    "b" : vsc.bin_array([], 1, 2, 4, 8)
+                    })
 
 Providing Coverage Data to Sample
 =================================
 PyVSC supports several methods for providing data for a covergroup 
 instance to sample.
 - Data in a `randobj`-decorated class object can be provided by
-  reference to the covergroup `__init__` method.
+reference to the covergroup `__init__` method.
 - Scalar data can be specified to the `__init__` method using
-  lambda expressions to obtain the data from the instantiating context
+lambda expressions to obtain the data from the instantiating context
 - Data can be provided via the `sample` methods, using a user-specified
-  sample-method signature.
+sample-method signature.
   
   
 Declaring a Custom Sample Method

@@ -520,10 +520,264 @@ class TestRandomDist(VscTestCase):
         
             def __str__(self):
                 return(f"type = {self.type}, displacement = {self.disp}")
-            
+        hist = [0]*65
         branchInstr = BranchInstr()
-        for i in range(32):
+        for i in range(1000):
             branchInstr.randomize()
-            print(branchInstr)        
+#            print("disp: %02x %s" % (branchInstr.disp, bin(branchInstr.disp)))
+            hist[int(branchInstr.disp/64)] += 1
+#            print(branchInstr)        
+
+        print("hist: %s" % str(hist))
+            
+    def test_partsel_dist_stuck_at(self):
+        import vsc
+        
+        @vsc.randobj
+        class my_d:
+        
+            def __init__(self):
+                self.value = vsc.rand_bit_t(4)
+                self.a = vsc.rand_bit_t(1)
+                self.b = vsc.rand_bit_t(1)
+        
+            @vsc.constraint
+            def a_c1(self):
+                vsc.solve_order(self.a, self.value)
+                vsc.solve_order(self.b, self.value)
+        
+            @vsc.constraint
+            def a_c2(self):
+                self.value[3] == self.a
+                self.value[2] == self.b
+
+        hist = [0]*4
+        td = my_d()
+        for i in range(100):
+            with td.randomize_with() as it:
+                it.a == 1
+                it.b == 0
+
+#            print("td.value: %d" % ((td.value & 0x3),))
+            hist[td.value & 0x3] += 1        
+#            print("a = " + str(td.a) + "  b = " + str(td.b) + "  value = " + str(hex(td.value)))        
+        
+        print("hist: %s" % str(hist))
+        
+        for i,v in enumerate(hist):
+            self.assertNotEqual(v, 0)
+
+    def test_partsel_dist(self):
+        import vsc
+        
+        @vsc.randobj
+        class my_d:
+        
+            def __init__(self):
+                self.value = vsc.rand_bit_t(4)
+                self.a = vsc.rand_bit_t(1)
+                self.b = vsc.rand_bit_t(1)
+        
+            @vsc.constraint
+            def a_c1(self):
+                vsc.solve_order(self.a, self.value)
+                vsc.solve_order(self.b, self.value)
+        
+            @vsc.constraint
+            def a_c2(self):
+                self.value[3] == self.a
+                self.value[2] == self.b
+
+        hist_a = [0]*2
+        hist_b = [0]*2
+        hist = [0]*16
+        
+        td = my_d()
+        for i in range(480):
+            with td.randomize_with() as it:
+                pass
+
+            hist_a[td.a] += 1
+            hist_b[td.b] += 1
+            hist[td.value] += 1
+#            print("a = " + str(td.a) + "  b = " + str(td.b) + "  value = " + str(hex(td.value)))        
+        
+        print("hist: value=%s a=%s b=%s" % (str(hist), str(hist_a), str(hist_b)))
+        
+        for i,v in enumerate(hist):
+            self.assertNotEqual(v, 0)        
+            
+    def test_multivar_rel(self):
+
+        @vsc.randobj
+        class it_c(object):
+
+            def __init__(self):
+                self.a = vsc.rand_uint8_t()
+                self.b = vsc.rand_uint8_t()
+
+            @vsc.constraint
+            def ab_c(self):
+                self.a < self.b
+
+        hist_a = [0]*256
+        hist_b = [0]*256
+
+        it = it_c()
+
+        for i in range(256*20):
+            it.randomize(debug=0)
+            hist_a[it.a] += 1
+            hist_b[it.b] += 1
+            
+        for i in range(len(hist_a)-1):
+            self.assertNotEqual(hist_a[i], 0);
+            
+        for i in range(1,len(hist_b)):
+            self.assertNotEqual(hist_b[i], 0);
+
+        print("hist_a: " + str(hist_a))
+        print("hist_b: " + str(hist_b))
+
+    def test_first_example(self):
+        
+        @vsc.randobj
+        class my_s(object):
+        
+            def __init__(self):
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
+                self.c = vsc.rand_bit_t(8)
+                self.d = vsc.rand_bit_t(8)
+        
+            @vsc.constraint
+            def ab_c(self):
+        
+                self.a in vsc.rangelist(1, 2, 4, 8)
+        
+                self.c != 0
+                self.d != 0
+        
+                self.c < self.d
+                self.b in vsc.rangelist(vsc.rng(self.c,self.d))        
+                
+        i = my_s()
+        
+        for _ in range(10):
+            i.randomize()
+            print("a=%d b=%d c=%d d=%d" % (i.a, i.b, i.c, i.d))
+            
+    def test_widevar_small_range(self):
+        
+        @vsc.randobj
+        class Selector:
+            def __init__(self):
+                self.a = vsc.rand_uint64_t()
+                self.b = vsc.rand_uint64_t()
+                self.c = vsc.rand_uint64_t()
+        
+            @vsc.constraint
+            def ab_c(self):
+                self.a.inside(vsc.rangelist(vsc.rng(0, 19)))
+        
+        selector = Selector()
+        a_hist = [0]*20
+        for i in range(20*20):
+            selector.randomize()
+            a_hist[selector.a] += 1
+        
+        print("a_hist: %s" % str(a_hist))
+        for e in a_hist:
+            self.assertNotEqual(e, 0)
+
+    def test_widevar_small_range_2(self):
+        
+        @vsc.randobj
+        class Selector:
+            def __init__(self):
+                self.b = vsc.rand_uint64_t()
+        
+            @vsc.constraint
+            def ab_c(self):
+                self.b.inside(vsc.rangelist(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19))
+        
+        selector = Selector()
+        b_hist = [0]*20
+        for i in range(20*20):
+            selector.randomize()
+            b_hist[selector.b] += 1
+        
+        print("b_hist: %s" % str(b_hist))
+        for e in b_hist:
+            self.assertNotEqual(e, 0)
+        
+    def test_widevar_small_range_3(self):
+        
+        @vsc.randobj
+        class Selector:
+            def __init__(self):
+                self.c = vsc.rand_uint64_t()
+        
+            @vsc.constraint
+            def ab_c(self):
+                self.c.inside(vsc.rangelist(vsc.rng(0,1999)))
+        
+        selector = Selector()
+        c_hist = [0]*20
+        for i in range(20*20):
+            selector.randomize()
+            c_hist[int(selector.c%20)] += 1
+        
+        print("c_hist: %s" % str(c_hist))
+        for e in c_hist:
+            self.assertNotEqual(e, 0)
+            
+    def test_8bit_all_values(self):
+        
+        @vsc.randobj
+        class constraints(object):
+            def __init__(self):
+                self.key = vsc.rand_bit_t(8)
+        
+            @vsc.constraint
+            def c(self):
+                self.key in vsc.rangelist(0, 255)
+        cr = constraints()
+
+        zero_cnt = 0
+        max_cnt = 0        
+        for i in range(20):
+            # Get now random stimuli
+            cr.randomize()
+            if cr.key == 0:
+                zero_cnt += 1
+            if cr.key == 255:
+                max_cnt += 1
+                
+        self.assertGreater(zero_cnt, 0)
+        self.assertGreater(max_cnt, 0)
+        
+    def test_signed_8bit_neg_values(self):
+
+        @vsc.randobj
+        class my_cls(object):
+            def __init__(self):
+                self.a = vsc.rand_int8_t()
+        
+            @vsc.constraint
+            def a_c(self):
+                self.a <= -100
+                
+        bins = [0]*28
+        
+        myi = my_cls()
+        for i in range(200):
+            myi.randomize()
+            self.assertLessEqual(myi.a, -100)
+            bins[myi.a+100] += 1
+        print("bins: %s" % str(bins))
+        
+        for i,b in enumerate(bins):
+            self.assertNotEqual(b, 0)
         
         

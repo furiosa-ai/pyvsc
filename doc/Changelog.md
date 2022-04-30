@@ -1,4 +1,53 @@
 
+## 0.7.1
+- (#156) Correct random distribution for signed variables constrained to negaitve value ranges
+
+## 0.7.0
+- (#146) Correct an issue with enums and the new constant-expression eval from #132
+
+## 0.6.9
+- (#132) Evaluate constant 'if' conditions in foreach
+
+- (#145) Correct 'unique' constraint to handle single-element lists
+
+## 0.6.8
+- (#127) Change randomization scheme to make better use of domain info
+
+## 0.6.7
+- (#143) Correct a failure when no source information is available
+
+## 0.6.6
+- #(142) Resolve random instability due to use of 'dist' constraints
+
+## 0.6.5
+- (#133) Use built-in Random package in RandState [Michael McGrath]
+
+## 0.6.4
+- (#128) Add support for modifying the defintion of rangelists
+
+## 0.6.3
+- (#117) Add support for explicitly managing random stability
+
+## 0.6.2
+- (#119) Correct accidental import of attr.exclude
+
+## 0.6.1
+- (#111) Add support for illegal and ignore bins
+
+## 0.6.0
+- (#115) Correct an issue with Jupyter notebooks and inability
+  to obtain source information
+- (#59) Add environment-variable support for controlling 
+  enhanced diagnostic messages, and add documentation
+
+## 0.5.9
+- (#107) Added a new randomization approach that deals better
+  with bit conflicts.
+
+## 0.5.8
+- (#110) Correct an issue with variable-bound calculation
+  in the presence of part selects.
+
 ## 0.5.7
 - (#108) Correct an issue with specifying individual kwarg
   sample arguments to with_sample instead of passing a dict()

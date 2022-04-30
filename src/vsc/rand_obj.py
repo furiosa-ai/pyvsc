@@ -59,6 +59,7 @@ class _randobj:
             
             def __init__(self, *args, **kwargs):
                 ro_i = self._get_ro_int()
+                ro_i.srcinfo = srcinfo
                 
                 # Capture the instantiation location
                 frame = inspect.stack()[1]
@@ -137,17 +138,29 @@ class _randobj:
                     elif field == "rand_mode":
                         self._int_rand_info.rand_mode = bool(val)
                     else:
-                        object.__setattr__(self, field, val)                
-                        
+                        object.__setattr__(self, field, val)
+
+            def get_randstate(self):
+                ro_int = self._get_ro_int()
+
+                # Return a copy to the user                
+                return ro_int.get_randstate().clone()
+            
+            def set_randstate(self, rs):
+                ro_int = self._get_ro_int()
+                ro_int.set_randstate(rs)
+
             def randomize(self, 
                           debug=0,
                           lint=0,
                           solve_fail_debug=0):
+                ro_int = self._get_ro_int()
                 frame = inspect.stack()[1]
                 
                 model = self.get_model()
                 try:
                     Randomizer.do_randomize(
+                        ro_int.get_randstate(),
                         SourceInfo(frame.filename, frame.lineno),
                         [model], 
                         debug=debug,
@@ -230,18 +243,23 @@ class _randobj:
                 return self._ro_int
             
             def __enter__(self):
+                ro_i = self._get_ro_int()
                 enter_expr_mode()
                 self.get_model() # Ensure model is constructed
+                push_srcinfo_mode(ro_i.srcinfo)
                 push_constraint_scope(ConstraintBlockModel("inline"))
                 return self
             
             def __exit__(self, t, v, tb):
+                ro_i = self._get_ro_int()
                 frame = inspect.stack()[1]
                 c = pop_constraint_scope()
                 leave_expr_mode()
+                pop_srcinfo_mode()
                 model = self.get_model() # Ensure model is constructed
                 try:
                     Randomizer.do_randomize(
+                        ro_i.get_randstate(),
                         SourceInfo(frame.filename, frame.lineno),
                         [model], 
                         [c], 
@@ -296,6 +314,8 @@ class _randobj:
             setattr(T, "randomize_with", randomize_with)
             setattr(T, "build_field_model", build_field_model)
             setattr(T, "get_model", get_model)
+            setattr(T, "set_randstate", set_randstate)
+            setattr(T, "get_randstate", get_randstate)
             setattr(T, "_get_ro_int", _get_ro_int)
             setattr(T, "__enter__", __enter__)
             setattr(T, "__exit__", __exit__)
